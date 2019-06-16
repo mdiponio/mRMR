@@ -1,7 +1,7 @@
 ##
 # Copyright (C) 2018 by Ryan N. Lichtenwalter
 # Email: rlichtenwalter@gmail.com
-# 
+#
 # This file is part of the Improved mRMR code base.
 #
 # Improved mRMR is free software: you can redistribute it and/or modify
@@ -18,7 +18,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-CC := /usr/local/bin/g++
+CC := g++
 COMMON_FLAGS := -std=c++14 -Wall -Wextra -Werror -Wno-unused-local-typedefs -pedantic
 
 DEBUG_FLAGS := -Og -g -fsanitize=address -fno-omit-frame-pointer -fmax-errors=1
@@ -30,8 +30,9 @@ else
 	CFLAGS := $(COMMON_FLAGS) $(RELEASE_FLAGS)
 endif
 
-mrmr: mrmr.o
+mrmr: main.cpp utils.o 
 	$(CC) $(CFLAGS) -o $@ $^
+
 
 test: tests
 	./tests
@@ -45,5 +46,5 @@ tests: tests.o
 .PHONY: clean test
 
 clean:
-	rm -f *.o
+	rm -f *.o *.so mrmr
 
