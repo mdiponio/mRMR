@@ -21,7 +21,7 @@
 CC := g++
 COMMON_FLAGS := -std=c++14 -Wall -Wextra -Werror -Wno-unused-local-typedefs -pedantic
 
-DEBUG_FLAGS := -Og -g -fsanitize=address -fno-omit-frame-pointer -fmax-errors=1
+DEBUG_FLAGS := -Og -g -fsanitize=address -fno-omit-frame-pointer  -fmax-errors=1
 RELEASE_FLAGS := -O3 -flto -fomit-frame-pointer -D NDEBUG
 
 ifeq ($(DEBUG),1)
@@ -30,9 +30,13 @@ else
 	CFLAGS := $(COMMON_FLAGS) $(RELEASE_FLAGS)
 endif
 
+PYTHON_LIB_NAME=mrmr_py.so
+
 mrmr: main.cpp utils.o 
 	$(CC) $(CFLAGS) -o $@ $^
 
+py: mrmr_py.cpp utils.o
+	$(CC) -shared -fPIC $(CFLAGS) -o $(PYTHON_LIB_NAME) $^
 
 test: tests
 	./tests

@@ -46,6 +46,9 @@ class dataset {
 		std::size_t num_instances() const;
 		std::size_t num_attributes() const;
 		std::string attribute_name( std::size_t attribute_num ) const;
+		std::size_t num_rows() const;
+		int attribute_index( std::string& name ) const;
+		int set_attribute( std::string& name, T * data, std::size_t length );
 		double attribute_entropy( std::size_t attribute_num ) const;
 		double mutual_information( std::size_t attribute1, std::size_t attribute2 ) const;
 	private:
@@ -128,8 +131,53 @@ std::size_t dataset<T>::num_attributes() const {
 }
 
 template <typename T>
+std::size_t dataset<T>::num_rows() const {
+	return _data.num_rows();
+}
+
+template <typename T>
 std::string dataset<T>::attribute_name( std::size_t attribute_num ) const {
 	return _names[ attribute_num ];
+}
+
+template <typename T>
+int dataset<T>::attribute_index( std::string& name ) const {
+	auto it = std::find( _names.begin(), _names.end(), name );
+	return it == _names.end() ? -1 : std::distance(_names.begin(), it);
+}
+
+template <typename T> 
+int dataset<T>::set_attribute( std::string& name, T* data, std::size_t length ) {
+	if ( num_attributes() > 0 && _data.num_rows() != length ) {
+		return -1;
+	}
+
+	std::size_t attribute_num = attribute_index( name );
+	std::valarray<T> attribute_data( data, length );
+
+	matrix<T> m = _data.transpose();
+	if ( attribute_num < 0 ) {
+		// new attribute
+		_names.push_back(name);
+		m.add_column( attribute_data );
+		attribute_num = _names.size() - 1;
+	}
+	else {
+		// existing attribute
+		m.set_column( attribute_num, attribute_data );
+	} 
+
+	_data = std::move ( m.transpose() );
+	
+	auto attribute_begin = &_data( attribute_num, 0 );
+	auto attribute_end = attribute_begin + num_instances();
+
+	if ( attribute_num == num_attributes() - 1)
+		_attr_info.emplace_back( attribute_begin, attribute_end );
+	else
+		_attr_info.emplace( _attr_info.begin() + attribute_num, attribute_begin, attribute_end );
+
+	return 0;
 }
 
 template <typename T>
