@@ -30,7 +30,7 @@ else
 	CFLAGS := $(COMMON_FLAGS) $(RELEASE_FLAGS)
 endif
 
-PYTHON_LIB_NAME=mrmr_py.so
+PYTHON_LIB_NAME=libmrmr_py.so
 
 mrmr: main.cpp utils.o 
 	$(CC) $(CFLAGS) -o $@ $^
@@ -50,5 +50,5 @@ tests: tests.o
 .PHONY: clean test
 
 clean:
-	rm -f *.o *.so mrmr
+	rm -f *.o *.so mrmr 
 

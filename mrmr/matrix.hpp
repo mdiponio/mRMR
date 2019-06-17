@@ -46,10 +46,12 @@ class matrix {
 		T const & operator()( std::size_t row, std::size_t column ) const;
 		T & operator()( std::size_t row, std::size_t column );
 		matrix<T> transpose() const;
+
 	private:
 		std::size_t _num_rows;
 		std::size_t _num_columns;
 		std::valarray<T> _data;
+		
 };
 
 template <typename T>
@@ -76,24 +78,25 @@ std::size_t matrix<T>::num_columns() const {
 
 template <typename T>
 void matrix<T>::add_column( std::valarray<T>& column_data ) {
-	std::valarray<T> temp(_data);
+	std::valarray<T> temp;
 
-	if ( _num_columns > 0 ) {
-		_num_columns++;
+	if ( _num_rows > 0 ) {
+		_num_rows++;
 		temp.resize( _num_rows * _num_columns );
 		std::copy( std::cbegin( _data ), std::cend( _data ) , std::begin( temp ) );
-		std::copy( std::cend( column_data ), std::cend( column_data ), std::end(temp) - _num_rows );
+		std::copy( std::cbegin( column_data ), std::cend( column_data ), std::end( temp ) - _num_columns );
 		_data = std::move( temp );
 	} 
 	else {
-		_num_columns = 1;
-		_data = column_data;
+		_num_columns = column_data.size();
+		_num_rows = 1;
+		_data = std::move( column_data );
 	}
 }	
 
 template <typename T>
 void matrix<T>::set_column( std::size_t column, std::valarray<T>& column_data ) {
-	std::copy( std::cend( column_data ), std::cend( column_data ), std::begin( _data ) + column * _num_rows );
+	std::copy( std::cend( column_data ), std::cend( column_data ), std::begin( _data ) + column * _num_columns );
 }
 
 template <typename T>

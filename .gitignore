@@ -1,6 +1,8 @@
 *.o
 *.so
-mrmr
-tests
+mrmr/mrmr
+mrmr/tests
 
 .vscode
+
+__pycache__

@@ -48,17 +48,17 @@ struct mrmr_env {
             for ( int i = 0; i < results_size; i++ )
                 delete ranks[i];
 
-            delete ranks;
+            delete [] ranks;
         }
 
         if ( entropy )
-            delete entropy;
+            delete [] entropy;
 
         if ( mutual_information )
-            delete mutual_information;
+            delete [] mutual_information;
 
         if ( score )
-            delete score;
+            delete [] score;
 
         ranks = nullptr;
         entropy = nullptr;

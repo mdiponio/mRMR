@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <cstring>
+#include <iostream>
 
 #include "mrmr_py.hpp"
 
@@ -53,7 +54,7 @@ int perform_mrmr( void * env, unsigned int label, unsigned int num_features ) {
     }
 
     auto results = mrmr( *m_env->data, label, num_features );
-
+   
     if ( ( m_env->results_size = results.size() - 1 ) > 0 ) {
         
         m_env->ranks = new const char * [ m_env->results_size ];
@@ -63,10 +64,12 @@ int perform_mrmr( void * env, unsigned int label, unsigned int num_features ) {
 
         std::size_t i = 0;
         for ( auto it = results.begin() + 1; it != results.end(); it++ ) {
-            m_env->ranks[i] = it->name.c_str();
+            m_env->ranks[i] = strdup( it->name.c_str() );
             m_env->entropy[i] = it->entropy;
             m_env->mutual_information[i] = it->mutual_information;
-            m_env->score[i] = it->score;
+            m_env->score[i++] = it->score;
+
+            // std::cout << i << ": " << it->name << std::endl;
         }
     }
     
