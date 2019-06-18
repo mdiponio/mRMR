@@ -46,7 +46,6 @@ struct mrmr_env {
     double * mutual_information;
     double * score;
 
-
     std::string error;
 
     mrmr_env( data_type type ): data_uint8( nullptr ), data_int32( nullptr ), type( type ),

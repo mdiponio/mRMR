@@ -67,7 +67,7 @@ def mrmr(dataset, features=[], label=None, num_features=0):
         raise OSError("native library not linked")
 
     # Create environment 
-    env = _mrmr_lib.setup_mrmr(c_int(0))
+    env = _mrmr_lib.setup_mrmr(c_int(1))
     if not env:
         raise MRMRError("failed setting up environment")
 
