@@ -35,7 +35,6 @@ def setup(path=None):
     if not path:
         path = dirname(realpath(__file__)) + "/../mrmr/libmrmr_py.so"
 
-    print(path)
     if not isfile(path):
         raise OSError("library path not found")
 
@@ -48,6 +47,7 @@ def setup(path=None):
 
     _mrmr_lib.get_feature_ranks.restype = POINTER(c_char_p)
     _mrmr_lib.get_mrmr_score.restype = POINTER(c_double)
+    _mrmr_lib.get_last_error.restype = c_char_p
 
     
 def mrmr(dataset, features=[], label=None, num_features=0):
@@ -58,6 +58,7 @@ def mrmr(dataset, features=[], label=None, num_features=0):
     :param features: list of features to use (optional, default all)
     :param label: feature label (optional, default first column)
     :param num_features: top number of features to rank
+    :return: tuple containing feature ranks and MRMR scores 
     :raises OSError: native library not linked
     :raises MRMRError mrmr error
     """
@@ -66,7 +67,7 @@ def mrmr(dataset, features=[], label=None, num_features=0):
         raise OSError("native library not linked")
 
     # Create environment 
-    env = _mrmr_lib.setup_mrmr()
+    env = _mrmr_lib.setup_mrmr(c_int(0))
     if not env:
         raise MRMRError("failed setting up environment")
 
@@ -83,13 +84,13 @@ def mrmr(dataset, features=[], label=None, num_features=0):
 
     c_uint8_p = POINTER(c_uint8)
     data = dataset[label].astype(ubyte)
-    _mrmr_lib.add_attribute(c_void_p(env), c_char_p(label.encode('utf-8')), 
-                            data.values.ctypes.data_as(c_uint8_p), c_int(data.size))
+    _mrmr_lib.add_attribute_byte(c_void_p(env), c_char_p(label.encode('utf-8')), 
+                                 data.values.ctypes.data_as(c_uint8_p), c_int(data.size))
 
     for feature in features:
         data = dataset[feature].astype(ubyte)
-        _mrmr_lib.add_attribute(c_void_p(env), c_char_p(feature.encode('utf-8')), 
-                                data.values.ctypes.data_as(c_uint8_p), c_int(data.size))
+        _mrmr_lib.add_attribute_byte(c_void_p(env), c_char_p(feature.encode('utf-8')), 
+                                     data.values.ctypes.data_as(c_uint8_p), c_int(data.size))
 
     # Run MRMR
     num_ranked = _mrmr_lib.perform_mrmr(c_void_p(env), c_uint(0), c_uint(num_features))
@@ -103,7 +104,7 @@ def mrmr(dataset, features=[], label=None, num_features=0):
 
     ranks = []
     for i in range(num.value):
-        ranks.append(buf[i])
+        ranks.append(buf[i].decode('utf-8'))
 
     scores = []
     score_buf = _mrmr_lib.get_mrmr_score(c_void_p(env), byref(num))
@@ -126,4 +127,4 @@ if __name__ == "__main__":
     ranks, scores = mrmr(ds)
     
     for i in range(len(ranks)):
-        print("%s %f" % (ranks[i], scores[i]))
+        print(ranks[i])

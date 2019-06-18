@@ -19,7 +19,7 @@
 ##
 
 CC := g++
-COMMON_FLAGS := -std=c++14 -Wall -Wextra -Werror -Wno-unused-local-typedefs -pedantic
+COMMON_FLAGS := -std=c++14 # -Wall -Wextra -Werror -Wno-unused-local-typedefs -pedantic
 
 DEBUG_FLAGS := -Og -g -fsanitize=address -fno-omit-frame-pointer  -fmax-errors=1
 RELEASE_FLAGS := -O3 -flto -fomit-frame-pointer -D NDEBUG

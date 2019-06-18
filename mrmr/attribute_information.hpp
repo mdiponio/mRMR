@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define MRMR_ATTRIBUTE_INFORMATION_HPP
 
 #include <array>
+#include <map>
 #include <cassert>
 #include <iterator>
 #include <limits>
@@ -47,9 +48,11 @@ attribute_information<T>::attribute_information( ForwardIterator first, ForwardI
 	std::size_t count = last - first;
 
 	// compute temporary histogram on fast integral type
-	std::array<unsigned int,std::numeric_limits<T>::max()> temp_histogram = {};
+
+	std::array< unsigned int, std::numeric_limits<T>::max() > temp_histogram = {};
 	while( first != last ) {
-		++temp_histogram[*first];
+		std::size_t pos = *first;
+		++temp_histogram[ pos ];
 		++first;
 	}
 

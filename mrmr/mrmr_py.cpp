@@ -23,19 +23,68 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "mrmr_py.hpp"
 
-void * setup_mrmr() {
-    return new mrmr_env();
+void * setup_mrmr( data_type type ) {
+    if ( type >= uint8_type && type <= int32_type )
+        return new mrmr_env( type );
+    else 
+        return nullptr;
 }
 
-int add_attribute( void * env, const char * name, uint8_t * data, unsigned int length ) {
+int add_attribute_byte( void * env, const char * name, uint8_t * data, unsigned int length ) {
     mrmr_env * m_env = static_cast< mrmr_env * >( env );
 
-    if ( ! m_env->data ) {
-        m_env->data = new dataset<uint8_t>();
+    if ( ! m_env->has_data() ) {
+        m_env->init_data();
     }
 
     std::string name_s(name);
-    return m_env->data->set_attribute( name_s, data, length );
+
+    int ret = 0;
+    int32_t * tmp;
+
+    switch ( m_env->type )
+    {
+        case uint8_type:
+            ret = m_env->data_uint8->set_attribute( name_s, data, length );
+            break;
+
+        case int32_type:
+            tmp = new int32_t[ length ];
+            for ( std::size_t i = 0; i < length; i++ )
+                tmp[i] = data[i];
+
+            ret = m_env->data_int32->set_attribute( name_s, tmp, length );
+            delete [] tmp;
+            break;
+
+        default: 
+            throw std::invalid_argument("invalid data type specified");
+
+    }
+
+    return ret;
+}
+
+int add_attribute_int( void *env, const char * name, int32_t * data, unsigned int length ) {
+    mrmr_env * m_env = static_cast< mrmr_env * >( env );
+
+     if ( ! m_env->has_data() ) {
+        m_env->init_data();
+    }
+
+    std::string name_s(name);
+    switch ( m_env->type )
+    {
+        case uint8_type:
+            m_env->error = "cannot put type int in byte data set";
+            return -1;
+
+        case int32_type:
+            return m_env->data_int32->set_attribute( name_s, data, length );
+
+        default: 
+            throw std::invalid_argument("invalid data type specified");
+    }
 }
 
 int perform_mrmr( void * env, unsigned int label, unsigned int num_features ) {
@@ -43,18 +92,27 @@ int perform_mrmr( void * env, unsigned int label, unsigned int num_features ) {
 
     m_env->clear_results();
 
-    if ( ! m_env->data ) {
+    if ( ! m_env->has_data() ) {
         m_env->error = "data not set";
         return -1;
     }
 
-    if ( label >= m_env->data->num_attributes() ) {
+    if ( label >= m_env->num_attributes() ) {
         m_env->error = "label out of range";
         return -2;
     }
 
-    auto results = mrmr( *m_env->data, label, num_features );
-   
+    std::vector<mrmr_result> results;
+    switch ( m_env->type ) {
+        case uint8_type:
+            results = mrmr( *m_env->data_uint8, label, num_features );
+            break;
+
+        case int32_type:
+            results = mrmr( *m_env->data_int32, label, num_features );
+            break;
+    }
+
     if ( ( m_env->results_size = results.size() - 1 ) > 0 ) {
         
         m_env->ranks = new const char * [ m_env->results_size ];
