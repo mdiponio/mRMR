@@ -89,7 +89,15 @@ std::vector<mrmr_result> mrmr(dataset<T>& data, std::size_t class_attribute = 0,
             class_entropy, class_entropy, std::numeric_limits<double>::quiet_NaN() ) );
 
 	// handle special case of first attribute with highest mutual information
-	std::size_t best_attribute_index = std::max_element( mutual_informations.begin(), mutual_informations.end() ) - mutual_informations.begin();
+	std::size_t best_attribute_index = 0;
+	double max = std::numeric_limits<double>::min();
+	for ( auto it = mutual_informations.begin(); it != mutual_informations.end(); it++ ) {
+		if ( *it >= max) {
+			max = *it;
+			best_attribute_index = it - mutual_informations.begin();
+		}
+	}
+
 	std::size_t last_attribute_index = best_attribute_index;
 	unselected.remove( best_attribute_index );
 
@@ -109,7 +117,7 @@ std::vector<mrmr_result> mrmr(dataset<T>& data, std::size_t class_attribute = 0,
 			redundance.at( attribute_index ) += data.mutual_information( last_attribute_index, attribute_index );
 			mrmr_score = mutual_informations.at( attribute_index ) - redundance.at( attribute_index ) / (rank - 1);
 
-			if( mrmr_score - best_mrmr_score > std::numeric_limits<double>::epsilon() ) {
+			if( mrmr_score >= best_mrmr_score) {
 				best_mrmr_score = mrmr_score;
 				best_attribute_index = attribute_index;
 				erase_it = last_it;
