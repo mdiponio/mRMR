@@ -27,6 +27,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <iterator>
 #include <limits>
 #include <valarray>
+#include <vector>
+#include <stdexcept>
 #include "typedef.hpp"
 
 template <typename T>
@@ -34,11 +36,13 @@ class attribute_information {
 	public:
 		template <typename ForwardIterator> attribute_information( ForwardIterator first, ForwardIterator last );
 		T num_values() const;
+		std::vector<T> values() const;
 		double entropy() const;
 		probability marginal_probability( T index ) const;
 	private:
 		double _entropy;
 		std::unordered_map< T, probability > _pdf;
+		std::vector<T> _values;
 };
 
 template <typename T>
@@ -50,10 +54,12 @@ attribute_information<T>::attribute_information( ForwardIterator first, ForwardI
 	while( first != last ) {
 		T val = *first;
 
-		if ( _pdf.count( *first ) > 0 )
+		if ( _pdf.count( *first ) > 0 ) {
 			_pdf[ *first ] += 1;
-		else
+		} else {
 			_pdf[ *first ] = 1;
+			_values.push_back( *first );
+		}
 
 		++first;
 	}
@@ -75,13 +81,22 @@ T attribute_information<T>::num_values() const {
 }
 
 template <typename T>
+std::vector<T> attribute_information<T>::values() const {
+	return _values;
+}
+
+template <typename T>
 double attribute_information<T>::entropy() const {
 	return _entropy;
 }
 
 template <typename T>
 probability attribute_information<T>::marginal_probability( T value ) const {
-	return _pdf.at ( value );
+	try {
+		return _pdf.at ( value );
+	} catch (std::out_of_range& err) {
+		return 0.0;
+	}
 }
 
 #endif

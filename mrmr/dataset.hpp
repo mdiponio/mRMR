@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <iterator>
 #include <valarray>
 #include <vector>
+#include <unordered_map>
 #include "attribute_information.hpp"
 #include "matrix.hpp"
 #include "typedef.hpp"
@@ -47,7 +48,7 @@ class dataset {
 		std::size_t num_attributes() const;
 		std::string attribute_name( std::size_t attribute_num ) const;
 		std::size_t num_rows() const;
-		int attribute_index( std::string& name ) const;
+		int attribute_value( std::string& name ) const;
 		int set_attribute( std::string& name, T * data, std::size_t length );
 		double attribute_entropy( std::size_t attribute_num ) const;
 		double mutual_information( std::size_t attribute1, std::size_t attribute2 ) const;
@@ -142,7 +143,7 @@ std::string dataset<T>::attribute_name( std::size_t attribute_num ) const {
 }
 
 template <typename T>
-int dataset<T>::attribute_index( std::string& name ) const {
+int dataset<T>::attribute_value( std::string& name ) const {
 	for ( std::size_t i = 0; i < _names.size(); i++ )
 		if ( _names[i] == name )
 			return i;
@@ -156,7 +157,7 @@ int dataset<T>::set_attribute( std::string& name, T* data, std::size_t length ) 
 		return -1;
 	}
 
-	int attribute_num = attribute_index( name );
+	int attribute_num = attribute_value( name );
 	std::valarray<T> attribute_data( data, length );
 
 	if ( attribute_num < 0 ) {
@@ -188,26 +189,39 @@ double dataset<T>::attribute_entropy( std::size_t attribute_num ) const {
 
 template <typename T>
 double dataset<T>::mutual_information( std::size_t attribute1, std::size_t attribute2 ) const {
-	std::size_t a1_num_values = _attr_info.at( attribute1 ).num_values();
-	std::size_t a2_num_values = _attr_info.at( attribute2 ).num_values();
-	if( a1_num_values == 1 || a2_num_values == 1 ) {
+	std::vector<T> a1_values = _attr_info.at( attribute1 ).values();
+	std::vector<T> a2_values = _attr_info.at( attribute2 ).values();
+
+	std::size_t a2_out_of_range = *std::max_element( a2_values.begin(), a2_values.end() ) + 1;
+
+	if( a1_values.size() == 1 || a2_values.size() == 1 ) {
 		return 0.0;
 	}
-	std::valarray<std::size_t> histogram( static_cast<std::size_t>( 0 ), a1_num_values * a2_num_values );
+
+	std::unordered_map<std::size_t, double> joint_probabilities;
 	for( std::size_t i = 0; i < num_instances(); ++i ) {
-		++histogram[ _data( attribute1, i ) * a2_num_values + _data( attribute2, i ) ];
+		std::size_t value  = _data( attribute1, i ) * a2_out_of_range + _data( attribute2, i );
+
+		if ( joint_probabilities.count( value ) == 0)
+		 	joint_probabilities[ value ] = 1;
+		else 
+			joint_probabilities[ value ]++;
 	}
-	std::valarray<probability> joint_probabilities( histogram.size() );
-	std::copy( std::cbegin( histogram ), std::cend( histogram ), std::begin( joint_probabilities ) );
-	joint_probabilities /= static_cast<double>( num_instances() );
+
+	for ( auto& it : joint_probabilities )
+		it.second = it.second / static_cast<double>( num_instances() );
 
 	double mutual_information = 0.0;
-	for( std::size_t i = 0; i < a1_num_values; ++i ) {
-		for( std::size_t j = 0; j < a2_num_values; ++j ) {
-			probability joint_probability = joint_probabilities[ i * a2_num_values + j ];
-			if( joint_probability != 0 ) {
-				probability marginal_probability_i = _attr_info.at( attribute1 ).marginal_probability( i );
-				probability marginal_probability_j = _attr_info.at( attribute2 ).marginal_probability( j );
+
+	for( auto& a1_value : a1_values ) {
+		for( auto& a2_value : a2_values ) {
+			std::size_t value = a1_value * a2_out_of_range + a2_value;
+
+			probability joint_probability = joint_probabilities[ value ];
+			if ( joint_probability != 0 ) {
+				probability marginal_probability_i = _attr_info.at( attribute1 ).marginal_probability( a1_value );
+				probability marginal_probability_j = _attr_info.at( attribute2 ).marginal_probability( a2_value );
+
 				mutual_information += joint_probability * std::log2( joint_probability / ( marginal_probability_i * marginal_probability_j ) );
 			}
 		}

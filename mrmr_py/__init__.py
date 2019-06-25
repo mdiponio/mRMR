@@ -20,18 +20,28 @@
 
 from ctypes import *
 from os.path import realpath, dirname, isfile
+from typing import List
+
 from numpy import ubyte
+from pandas import DataFrame
 
 # Loaded native library.
 _mrmr_lib = None
 
-def setup(path=None):
+
+def setup(path: str = None) -> None:
     """
     Setup by loading native library.
 
     :param path: native library path (optional, default relative to this file)
     :raises OSError: parameter not found
     """
+    global _mrmr_lib
+
+    if _mrmr_lib:
+        # Library previously loaded
+        return
+
     if not path:
         path = dirname(realpath(__file__)) + "/../mrmr/libmrmr_py.so"
 
@@ -39,7 +49,6 @@ def setup(path=None):
         raise OSError("library path not found")
 
     path = realpath(path)
-    global _mrmr_lib
     _mrmr_lib = cdll.LoadLibrary(path)
 
     if not _mrmr_lib:
@@ -50,7 +59,7 @@ def setup(path=None):
     _mrmr_lib.get_last_error.restype = c_char_p
 
     
-def mrmr(dataset, features=[], label=None, num_features=0):
+def mrmr(dataset: DataFrame, features: List[str] = [], label: str = None, num_features: int =0):
     """
     Run MRMR algorithm
 
@@ -67,7 +76,7 @@ def mrmr(dataset, features=[], label=None, num_features=0):
         raise OSError("native library not linked")
 
     # Create environment 
-    env = _mrmr_lib.setup_mrmr(c_int(1))
+    env = _mrmr_lib.setup_mrmr(c_int(0))
     if not env:
         raise MRMRError("failed setting up environment")
 
@@ -81,6 +90,8 @@ def mrmr(dataset, features=[], label=None, num_features=0):
         features.remove(label)
     else:
         raise MRMRError("label not in dataset")
+
+    dataset = dataset.dropna()
 
     c_uint8_p = POINTER(c_uint8)
     data = dataset[label].astype(ubyte)
@@ -114,6 +125,7 @@ def mrmr(dataset, features=[], label=None, num_features=0):
     _mrmr_lib.destroy_mrmr(c_void_p(env))
 
     return ranks, scores
+
 
 class MRMRError(Exception):
     pass
