@@ -23,11 +23,8 @@ from enum import Enum
 from os.path import realpath, dirname, isfile
 from typing import List, Tuple
 
-from numpy import ubyte
+from numpy import ubyte, ushort, int32
 from pandas import DataFrame
-
-# Loaded native library.
-_mrmr_lib = None
 
 
 class MRMRMethod(Enum):
@@ -41,6 +38,22 @@ class MRMRMethod(Enum):
     MIQ = 1
 
 
+class DataType(Enum):
+    """
+    Data types to send attributes to library.
+    """
+    UINT8 = 0
+    UINT16 = 1
+    INT32 = 2
+
+
+# Loaded native library.
+_mrmr_lib = None
+
+# Configurations for different data type options.
+_data_type_options = None
+
+
 def setup(path: str = None) -> None:
     """
     Setup by loading native library.
@@ -48,7 +61,7 @@ def setup(path: str = None) -> None:
     :param path: native library path (optional, default relative to this file)
     :raises OSError: parameter not found
     """
-    global _mrmr_lib
+    global _mrmr_lib, _data_type_options
 
     if _mrmr_lib:
         # Library previously loaded
@@ -70,6 +83,11 @@ def setup(path: str = None) -> None:
     _mrmr_lib.get_mrmr_score.restype = POINTER(c_double)
     _mrmr_lib.get_last_error.restype = c_char_p
 
+    _data_type_options = dict()
+    _data_type_options[DataType.UINT8] = (_mrmr_lib.add_attribute_uint8, POINTER(c_uint8), ubyte)
+    _data_type_options[DataType.UINT16] = (_mrmr_lib.add_attribute_uint16, POINTER(c_uint16), ushort)
+    _data_type_options[DataType.INT32] = (_mrmr_lib.add_attribute_int32, POINTER(c_int32), int32)
+
     
 def mrmr(dataset: DataFrame, features: List[str] = [], label: str = None, num_features: int = 0,
          method: MRMRMethod = MRMRMethod.MID) -> Tuple[List[str], List[float]]:
@@ -85,12 +103,14 @@ def mrmr(dataset: DataFrame, features: List[str] = [], label: str = None, num_fe
     :raises OSError: native library not linked
     :raises MRMRError mRMR execution error
     """
-    global _mrmr_lib
     if not _mrmr_lib:
         raise OSError("native library not linked")
 
+    # Data type of data to send
+    dtype = DataType.INT32
+
     # Create environment 
-    env = _mrmr_lib.setup_mrmr(c_int(0))
+    env = _mrmr_lib.setup_mrmr(c_int(dtype.value))
     if not env:
         raise MRMRError("failed setting up environment")
 
@@ -109,22 +129,23 @@ def mrmr(dataset: DataFrame, features: List[str] = [], label: str = None, num_fe
 
         dataset = dataset.dropna()
 
-        c_uint8_p = POINTER(c_uint8)
-        data = dataset[label].astype(ubyte)
-        _mrmr_lib.add_attribute_byte(c_void_p(env), c_char_p(label.encode('utf-8')),
-                                     data.values.ctypes.data_as(c_uint8_p), c_int(data.size))
+        add_attribute, type_pointer, type_cast = _data_type_options[dtype]
+
+        data = dataset[label].astype(type_cast)
+        add_attribute(c_void_p(env), c_char_p(label.encode('utf-8')),
+                      data.values.ctypes.data_as(type_pointer), c_int(data.size))
 
         for feature in features:
-            data = dataset[feature].astype(ubyte)
-            _mrmr_lib.add_attribute_byte(c_void_p(env), c_char_p(feature.encode('utf-8')),
-                                         data.values.ctypes.data_as(c_uint8_p), c_int(data.size))
+            data = dataset[feature].astype(type_cast)
+            add_attribute(c_void_p(env), c_char_p(feature.encode('utf-8')),
+                          data.values.ctypes.data_as(type_pointer), c_int(data.size))
 
         # Run MRMR
         num_ranked = _mrmr_lib.perform_mrmr(c_void_p(env), c_uint(method.value), c_uint(0), c_uint(num_features))
 
         if num_ranked < 0:
             # Error occurred
-            err = str(_mrmr_lib.get_last_error(), encoding='utf-8')
+            err = str(_mrmr_lib.get_last_error(env), encoding='utf-8')
             raise MRMRError("Error %d, %s" % (num_ranked, err))
 
         if num_ranked < 1:

@@ -29,13 +29,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dataset.hpp"
 #include "mrmr.hpp"
 
-enum data_type {
-    uint8_type,
-    int32_type,
+enum data_type: char {
+    uint8_type = 0,
+    uint16_type = 1,
+    int32_type = 2,
 };
 
 struct mrmr_env {
     dataset< uint8_t > * data_uint8;
+    dataset< uint16_t > * data_uint16;
     dataset< int32_t > * data_int32;
 
     data_type type;
@@ -48,7 +50,7 @@ struct mrmr_env {
 
     std::string error;
 
-    mrmr_env( data_type type ): data_uint8( nullptr ), data_int32( nullptr ), type( type ),
+    mrmr_env( data_type type ): data_uint8( nullptr ), data_uint16( nullptr ), data_int32( nullptr ), type( type ),
             results_size( 0 ), ranks( nullptr ), entropy( nullptr ), 
             mutual_information( nullptr ), score( nullptr ),  error( "" )
     { }
@@ -57,11 +59,15 @@ struct mrmr_env {
         switch ( type )
         {
         case uint8_type:
-            data_uint8 = new dataset<uint8_t>();
+            data_uint8 = new dataset< uint8_t >();
+            break;
+
+        case uint16_type:
+            data_uint16 = new dataset< uint16_t >();
             break;
 
         case int32_type:
-            data_int32 = new dataset<int32_t>();
+            data_int32 = new dataset< int32_t >();
             break;
 
         default: 
@@ -74,6 +80,9 @@ struct mrmr_env {
         {
         case uint8_type:
             return data_uint8 ? data_uint8->num_attributes() : 0;
+
+        case uint16_type:
+            return data_uint16 ? data_uint16->num_attributes() : 0;
 
         case int32_type:
             return data_int32 ? data_int32->num_attributes() : 0;
@@ -88,6 +97,9 @@ struct mrmr_env {
         {
         case uint8_type:
             return !! data_uint8;
+
+        case uint16_type:
+            return !! data_uint16;
 
         case int32_type:
             return !! data_int32;
@@ -125,13 +137,17 @@ struct mrmr_env {
     ~mrmr_env() {
         clear_results();
 
-        if ( data_uint8 ) 
+        if( data_uint8 ) 
             delete data_uint8;
 
-        if ( data_int32 )
+        if( data_uint16 )
+            delete data_uint16;
+
+        if( data_int32 )
             delete data_int32;
 
         data_uint8 = nullptr;
+        data_uint16 = nullptr;
         data_int32 = nullptr;
     }
 };
@@ -141,8 +157,9 @@ extern "C" {
 #endif
 
 void * setup_mrmr( data_type type );
-int add_attribute_byte( void * env, const char * name, uint8_t * data, unsigned int length );
-int add_attribute_int( void *env, const char * name, int32_t * data, unsigned int length );
+int add_attribute_uint8( void * env, const char * name, uint8_t * data, std::size_t length );
+int add_attribute_uint16( void * env, const char * name, uint16_t * data, std::size_t length );
+int add_attribute_int32( void *env, const char * name, int32_t * data, std::size_t length );
 int perform_mrmr( void * env, mrmr_method_type method, unsigned int label, unsigned int num_features );
 const char ** get_feature_ranks( void * env, int * num );
 double * get_entropy( void * env, int * num );

@@ -19,17 +19,16 @@
 ##
 
 CC := g++
-COMMON_FLAGS := -std=c++14 -fPIC #-Wall -Wextra -Werror -Wno-unused-local-typedefs -pedantic
+COMMON_FLAGS := -std=c++14 -fPIC -Wall -Wextra -Werror -Wno-unused-local-typedefs -pedantic
 
 DEBUG_FLAGS := -Og -g -fno-omit-frame-pointer  -fmax-errors=1
 RELEASE_FLAGS := -O2 -flto -fomit-frame-pointer -D NDEBUG
 
-# ifeq ($(DEBUG),0)
-# 	CFLAGS := $(COMMON_FLAGS) $(DEBUG_FLAGS)
-# else
-# 	CFLAGS := $(COMMON_FLAGS) $(RELEASE_FLAGS)
-# endif
-CFLAGS := $(COMMON_FLAGS) $(DEBUG_FLAGS)
+ifeq ($(DEBUG),0)
+	CFLAGS := $(COMMON_FLAGS) $(DEBUG_FLAGS)
+else
+	CFLAGS := $(COMMON_FLAGS) $(RELEASE_FLAGS)
+endif
 
 PYTHON_LIB_NAME=libmrmr_py.so
 

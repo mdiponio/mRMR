@@ -30,7 +30,7 @@ void * setup_mrmr( data_type type ) {
         return nullptr;
 }
 
-int add_attribute_byte( void * env, const char * name, uint8_t * data, unsigned int length ) {
+int add_attribute_uint8( void * env, const char * name, uint8_t * data, std::size_t length ) {
     mrmr_env * m_env = static_cast< mrmr_env * >( env );
 
     if ( ! m_env->has_data() ) {
@@ -40,12 +40,63 @@ int add_attribute_byte( void * env, const char * name, uint8_t * data, unsigned 
     std::string name_s(name);
 
     int ret = 0;
-    int32_t * tmp;
+    
+    uint16_t * u_tmp;
+    int32_t * i_tmp;
 
     switch ( m_env->type )
     {
         case uint8_type:
             ret = m_env->data_uint8->set_attribute( name_s, data, length );
+            break;
+
+        case uint16_type:
+            u_tmp = new uint16_t[ length ];
+            for ( std::size_t i = 0; i < length; i++ )
+                u_tmp[i] = data[i];
+
+            ret = m_env->data_uint16->set_attribute( name_s, u_tmp, length );
+            delete [] u_tmp;
+            break;
+
+        case int32_type:
+            i_tmp = new int32_t[ length ];
+            for ( std::size_t i = 0; i < length; i++ )
+                i_tmp[i] = data[i];
+
+            ret = m_env->data_int32->set_attribute( name_s, i_tmp, length );
+            delete [] i_tmp;
+            break;
+
+        default: 
+            throw std::invalid_argument("invalid data type specified");
+
+    }
+
+    return ret;
+}
+
+int add_attribute_uint16( void *env, const char * name, uint16_t * data, std::size_t length ) {
+    mrmr_env * m_env = static_cast< mrmr_env * >( env );
+
+    if ( ! m_env->has_data() ) {
+        m_env->init_data();
+    }
+
+    std::string name_s(name);
+
+    int ret = 0;
+
+    int32_t * tmp;
+
+    switch ( m_env->type )
+    {
+        case uint8_type:
+            m_env->error = "cannot put uint16 into uint8 type.";
+            return -1;
+
+        case uint16_type:
+            ret = m_env->data_uint16->set_attribute( name_s, data, length );
             break;
 
         case int32_type:
@@ -65,7 +116,7 @@ int add_attribute_byte( void * env, const char * name, uint8_t * data, unsigned 
     return ret;
 }
 
-int add_attribute_int( void *env, const char * name, int32_t * data, unsigned int length ) {
+int add_attribute_int32( void *env, const char * name, int32_t * data, std::size_t length ) {
     mrmr_env * m_env = static_cast< mrmr_env * >( env );
 
      if ( ! m_env->has_data() ) {
@@ -76,7 +127,11 @@ int add_attribute_int( void *env, const char * name, int32_t * data, unsigned in
     switch ( m_env->type )
     {
         case uint8_type:
-            m_env->error = "cannot put type int in byte data set";
+            m_env->error = "cannot put type int32 in uint8 data set";
+            return -1;
+
+        case uint16_type:
+            m_env->error = "cannot put type int32 in uint16 data set";
             return -1;
 
         case int32_type:
@@ -92,35 +147,29 @@ int perform_mrmr( void * env, mrmr_method_type mrmr_method, unsigned int label, 
 
     m_env->clear_results();
 
-    std::cout << "0 Calling MRMR, method " << mrmr_method << std::endl; 
-
-    // if ( !( mrmr_method == mrmr_method_type::MID && mrmr_method == mrmr_method_type::MIQ ) ) {
-    //     m_env->error = "invalid mMRMR method";
-    //     return -1;
-    // }
-    std::cout << "1 Calling MRMR, method " << mrmr_method << std::endl; 
-
+    if ( ! ( mrmr_method == mrmr_method_type::MID || mrmr_method == mrmr_method_type::MIQ ) ) {
+        m_env->error = "invalid mRMR method";
+        return -1;
+    }
 
     if ( ! m_env->has_data() ) {
         m_env->error = "data not set";
         return -2;
     }    
-    std::cout << "2 Calling MRMR, method " << mrmr_method << std::endl; 
-
-
-
 
     if ( label >= m_env->num_attributes() ) {
         m_env->error = "label out of range";
         return -3;
     }
 
-    std::cout << "3 Calling MRMR, method " << mrmr_method << std::endl; 
-
     std::vector<mrmr_result> results;
     switch ( m_env->type ) {
         case uint8_type:
             results = mrmr( *m_env->data_uint8, label, num_features, mrmr_method );
+            break;
+
+        case uint16_type:
+            results = mrmr( *m_env->data_uint16, label, num_features, mrmr_method );
             break;
 
         case int32_type:
