@@ -35,8 +35,8 @@ enum data_type {
 };
 
 struct mrmr_env {
-    dataset<uint8_t> * data_uint8;
-    dataset<int32_t> * data_int32;
+    dataset< uint8_t > * data_uint8;
+    dataset< int32_t > * data_int32;
 
     data_type type;
 
@@ -99,20 +99,20 @@ struct mrmr_env {
     }
 
     void clear_results() {
-        if ( ranks ) {
+        if( ranks ) {
             for ( int i = 0; i < results_size; i++ )
                 delete ranks[i];
 
             delete [] ranks;
         }
 
-        if ( entropy )
+        if( entropy )
             delete [] entropy;
 
-        if ( mutual_information )
+        if( mutual_information )
             delete [] mutual_information;
 
-        if ( score )
+        if( score )
             delete [] score;
 
         ranks = nullptr;
@@ -136,9 +136,6 @@ struct mrmr_env {
     }
 };
 
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -146,7 +143,7 @@ extern "C" {
 void * setup_mrmr( data_type type );
 int add_attribute_byte( void * env, const char * name, uint8_t * data, unsigned int length );
 int add_attribute_int( void *env, const char * name, int32_t * data, unsigned int length );
-int perform_mrmr( void * env, unsigned int label, unsigned int num_features );
+int perform_mrmr( void * env, mrmr_method_type method, unsigned int label, unsigned int num_features );
 const char ** get_feature_ranks( void * env, int * num );
 double * get_entropy( void * env, int * num );
 double * get_mutual_information( void * env, int * num );

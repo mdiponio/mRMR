@@ -1,5 +1,6 @@
 /*
 Copyright (C) 2018 by Ryan N. Lichtenwalter
+Copyright (C) 2019 by Michael Diponio
 Email: rlichtenwalter@gmail.com
 
 This file is part of the Improved mRMR code base.

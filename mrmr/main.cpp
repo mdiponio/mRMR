@@ -1,5 +1,6 @@
 /*
 Copyright (C) 2018 by Ryan N. Lichtenwalter
+Copyright (C) 2019 by Michael Diponio
 Email: rlichtenwalter@gmail.com
 
 This file is part of the Improved mRMR code base.
@@ -52,6 +53,8 @@ void usage( char const * program ) {
 	std::cout << "                            defaults to all attributes                          \n";
 	std::cout << "  -l, --verbosity=VALUE     one of {0,1,2,quiet,info,debug};                    \n";
 	std::cout << "                            defaults to 0=quiet if not provided                 \n";
+	std::cout << "  -m,  --method=VALUE       one of {mid,miq};                                   \n";
+	std::cout << "                            defaults to mid if not provided                     \n";
 	std::cout << "  -h, --help     display this help and exit                                     \n";
 	std::cout << "  -v, --version  output version information and exist                           \n";
 }
@@ -67,7 +70,10 @@ int main( int argc, char* argv[] ) {
 
 	std::ifstream ifs;
 	std::size_t class_attribute = 0;
+
 	dataset_type::discretization_method discretize = dataset_type::ROUND;
+	mrmr_method_type method = mrmr_method_type::MID;
+
 	bool just_write = false;
 
 	int num_attributes = 0;
@@ -81,10 +87,11 @@ int main( int argc, char* argv[] ) {
 				{ "verbosity", required_argument, 0, 'l' },
 				{ "write", no_argument, 0, 'w' },
 				{ "number", required_argument, 0, 'n'},
+				{ "method", required_argument, 0, 'm'},
 				{ "help", no_argument, 0, 'h' },
 				{ "version", no_argument, 0, 'v' }
 				};
-		c = getopt_long( argc, argv, "c:d:l:n:whv", long_options, &option_index );
+		c = getopt_long( argc, argv, "c:d:l:n:m:whv", long_options, &option_index );
 		if( c == -1 ) {
 			break;
 		}
@@ -137,8 +144,19 @@ int main( int argc, char* argv[] ) {
 				usage( argv[0] );
 				return 0;
 
+			case 'm':
+				if( strcmp( optarg, "mid" ) == 0) {
+					method = mrmr_method_type::MID;
+				} else if ( strcmp( optarg, "miq" ) == 0 ) {
+					method = mrmr_method_type::MIQ;
+				} else {
+					std::cerr << argv[0] << ": " << "-m, --method=[VALUE]  one of {mid,miq}; defaults to MID" << std::endl;
+					return 1;
+				}
+				break;
+
 			case 'v':
-				std::cout << "mrmr by Ryan N. Lichtenwalter v0.1 (BETA)\n";
+				std::cout << "mrmr by Ryan N. Lichtenwalter, Michael Diponio v0.2 (BETA)\n";
 				return 0;
 
 			default:
@@ -146,6 +164,7 @@ int main( int argc, char* argv[] ) {
 				return 1;
 		}
 	}
+
 	if( optind < argc ) {
 		if( optind == argc - 1 ) {
 			ifs = std::ifstream( argv[optind] );
@@ -178,7 +197,7 @@ int main( int argc, char* argv[] ) {
 	}
 
 	// perform MRMR
-	std::vector<mrmr_result> results = mrmr<unsigned char>( data, class_attribute, num_attributes );
+	std::vector<mrmr_result> results = mrmr<unsigned char>( data, class_attribute, num_attributes, method );
 
 	// print output
 	std::string cols[] = {

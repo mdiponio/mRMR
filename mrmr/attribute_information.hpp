@@ -52,8 +52,6 @@ attribute_information<T>::attribute_information( ForwardIterator first, ForwardI
 	double count = static_cast< double >( last - first );
 
 	while( first != last ) {
-		T val = *first;
-
 		if ( _pdf.count( *first ) > 0 ) {
 			_pdf[ *first ] += 1;
 		} else {

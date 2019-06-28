@@ -87,29 +87,44 @@ int add_attribute_int( void *env, const char * name, int32_t * data, unsigned in
     }
 }
 
-int perform_mrmr( void * env, unsigned int label, unsigned int num_features ) {
+int perform_mrmr( void * env, mrmr_method_type mrmr_method, unsigned int label, unsigned int num_features ) {
     mrmr_env * m_env = static_cast< mrmr_env * >( env );
 
     m_env->clear_results();
 
+    std::cout << "0 Calling MRMR, method " << mrmr_method << std::endl; 
+
+    // if ( !( mrmr_method == mrmr_method_type::MID && mrmr_method == mrmr_method_type::MIQ ) ) {
+    //     m_env->error = "invalid mMRMR method";
+    //     return -1;
+    // }
+    std::cout << "1 Calling MRMR, method " << mrmr_method << std::endl; 
+
+
     if ( ! m_env->has_data() ) {
         m_env->error = "data not set";
-        return -1;
-    }
+        return -2;
+    }    
+    std::cout << "2 Calling MRMR, method " << mrmr_method << std::endl; 
+
+
+
 
     if ( label >= m_env->num_attributes() ) {
         m_env->error = "label out of range";
-        return -2;
+        return -3;
     }
+
+    std::cout << "3 Calling MRMR, method " << mrmr_method << std::endl; 
 
     std::vector<mrmr_result> results;
     switch ( m_env->type ) {
         case uint8_type:
-            results = mrmr( *m_env->data_uint8, label, num_features );
+            results = mrmr( *m_env->data_uint8, label, num_features, mrmr_method );
             break;
 
         case int32_type:
-            results = mrmr( *m_env->data_int32, label, num_features );
+            results = mrmr( *m_env->data_int32, label, num_features, mrmr_method );
             break;
     }
 
@@ -126,8 +141,6 @@ int perform_mrmr( void * env, unsigned int label, unsigned int num_features ) {
             m_env->entropy[i] = it->entropy;
             m_env->mutual_information[i] = it->mutual_information;
             m_env->score[i++] = it->score;
-
-            // std::cout << i << ": " << it->name << std::endl;
         }
     }
     

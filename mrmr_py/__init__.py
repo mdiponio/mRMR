@@ -19,14 +19,26 @@
 #
 
 from ctypes import *
+from enum import Enum
 from os.path import realpath, dirname, isfile
-from typing import List
+from typing import List, Tuple
 
 from numpy import ubyte
 from pandas import DataFrame
 
 # Loaded native library.
 _mrmr_lib = None
+
+
+class MRMRMethod(Enum):
+    """
+    mRMR methods supported. These are:
+
+      - MID - mutual information difference
+      - MIQ - mutual information quotient
+    """
+    MID = 0 
+    MIQ = 1
 
 
 def setup(path: str = None) -> None:
@@ -59,7 +71,8 @@ def setup(path: str = None) -> None:
     _mrmr_lib.get_last_error.restype = c_char_p
 
     
-def mrmr(dataset: DataFrame, features: List[str] = [], label: str = None, num_features: int =0):
+def mrmr(dataset: DataFrame, features: List[str] = [], label: str = None, num_features: int = 0,
+         method: MRMRMethod = MRMRMethod.MID) -> Tuple[List[str], List[float]]:
     """
     Run MRMR algorithm
 
@@ -67,9 +80,10 @@ def mrmr(dataset: DataFrame, features: List[str] = [], label: str = None, num_fe
     :param features: list of features to use (optional, default all)
     :param label: feature label (optional, default first column)
     :param num_features: top number of features to rank
+    :param method: MRMR method (defaults to MID)
     :return: tuple containing feature ranks and MRMR scores 
     :raises OSError: native library not linked
-    :raises MRMRError mrmr error
+    :raises MRMRError mRMR execution error
     """
     global _mrmr_lib
     if not _mrmr_lib:
@@ -80,63 +94,63 @@ def mrmr(dataset: DataFrame, features: List[str] = [], label: str = None, num_fe
     if not env:
         raise MRMRError("failed setting up environment")
 
-    # Pass in data feature data
-    if len(features) == 0:
-        features = list(dataset.columns)
+    try:
 
-    if not label:
-        label = features.pop(0)
-    elif label in features:
-        features.remove(label)
-    else:
-        raise MRMRError("label not in dataset")
+        # Pass in data feature data
+        if len(features) == 0:
+            features = list(dataset.columns)
 
-    dataset = dataset.dropna()
+        if not label:
+            label = features.pop(0)
+        elif label in features:
+            features.remove(label)
+        else:
+            raise MRMRError("label not in dataset")
 
-    c_uint8_p = POINTER(c_uint8)
-    data = dataset[label].astype(ubyte)
-    _mrmr_lib.add_attribute_byte(c_void_p(env), c_char_p(label.encode('utf-8')), 
-                                 data.values.ctypes.data_as(c_uint8_p), c_int(data.size))
+        dataset = dataset.dropna()
 
-    for feature in features:
-        data = dataset[feature].astype(ubyte)
-        _mrmr_lib.add_attribute_byte(c_void_p(env), c_char_p(feature.encode('utf-8')), 
+        c_uint8_p = POINTER(c_uint8)
+        data = dataset[label].astype(ubyte)
+        _mrmr_lib.add_attribute_byte(c_void_p(env), c_char_p(label.encode('utf-8')),
                                      data.values.ctypes.data_as(c_uint8_p), c_int(data.size))
 
-    # Run MRMR
-    num_ranked = _mrmr_lib.perform_mrmr(c_void_p(env), c_uint(0), c_uint(num_features))
+        for feature in features:
+            data = dataset[feature].astype(ubyte)
+            _mrmr_lib.add_attribute_byte(c_void_p(env), c_char_p(feature.encode('utf-8')),
+                                         data.values.ctypes.data_as(c_uint8_p), c_int(data.size))
 
-    # Extract results
-    if num_ranked < 1:
-        return None
+        # Run MRMR
+        num_ranked = _mrmr_lib.perform_mrmr(c_void_p(env), c_uint(method.value), c_uint(0), c_uint(num_features))
 
-    num = c_int()
-    buf = _mrmr_lib.get_feature_ranks(c_void_p(env), byref(num))
+        if num_ranked < 0:
+            # Error occurred
+            err = str(_mrmr_lib.get_last_error(), encoding='utf-8')
+            raise MRMRError("Error %d, %s" % (num_ranked, err))
 
-    ranks = []
-    for i in range(num.value):
-        ranks.append(buf[i].decode('utf-8'))
+        if num_ranked < 1:
+            # No features ranked
+            return [], []
 
-    scores = []
-    score_buf = _mrmr_lib.get_mrmr_score(c_void_p(env), byref(num))
-    for i in range(num.value):
-        scores.append(score_buf[i])
+        # Extract results
+        num = c_int()
+        buf = _mrmr_lib.get_feature_ranks(c_void_p(env), byref(num))
 
-    _mrmr_lib.destroy_mrmr(c_void_p(env))
+        ranks = []
+        for i in range(num.value):
+            ranks.append(buf[i].decode('utf-8'))
 
-    return ranks, scores
+        scores = []
+        score_buf = _mrmr_lib.get_mrmr_score(c_void_p(env), byref(num))
+        for i in range(num.value):
+            scores.append(score_buf[i])
+
+        return ranks, scores
+
+    finally:
+        _mrmr_lib.destroy_mrmr(c_void_p(env))
 
 
 class MRMRError(Exception):
+    """Exception executing mRMR."""
     pass
 
-
-if __name__ == "__main__":
-    import pandas as pd
-    ds = pd.read_csv('/home/mdiponio/pcl-workspace/data-commas.csv')
-
-    setup()
-    ranks, scores = mrmr(ds)
-    
-    for i in range(len(ranks)):
-        print(ranks[i])

@@ -1,5 +1,6 @@
 /*
 Copyright (C) 2018 by Ryan N. Lichtenwalter
+Copyright (C) 2019 by Michael Diponio
 Email: rlichtenwalter@gmail.com
 
 This file is part of the Improved mRMR code base.
@@ -47,8 +48,13 @@ struct mrmr_result {
         entropy(entropy), mutual_information(mutual_information), score(score) { }
 };
 
+enum mrmr_method_type : char {
+	MID = 0,
+	MIQ = 1
+};
+
 template<typename T>
-std::vector<mrmr_result> mrmr(dataset<T>& data, std::size_t class_attribute = 0, std::size_t num_features = 0) {
+std::vector<mrmr_result> mrmr(dataset<T>& data, std::size_t class_attribute = 0, std::size_t num_features = 0, mrmr_method_type method = mrmr_method_type::MID) {
 
     if ( num_features == 0 )
         num_features = data.num_attributes();
@@ -115,7 +121,18 @@ std::vector<mrmr_result> mrmr(dataset<T>& data, std::size_t class_attribute = 0,
 		while( it != std::cend( unselected ) ) {
 			std::size_t attribute_index = *it;
 			redundance.at( attribute_index ) += data.mutual_information( last_attribute_index, attribute_index );
-			mrmr_score = mutual_informations.at( attribute_index ) - redundance.at( attribute_index ) / (rank - 1);
+
+			double redundance_value = redundance.at( attribute_index ) / (rank - 1); 
+			double mutual_information = mutual_informations.at ( attribute_index );
+
+			if( method == mrmr_method_type::MID ) {
+				mrmr_score = mutual_information - redundance_value;	
+			} else if( method == mrmr_method_type::MIQ ) {
+				mrmr_score = mutual_information / (redundance_value + 0.0001);
+			} else {
+				log.message( "Invalid MRMR method speicified.", ERROR );
+				return result;
+			}
 
 			if( mrmr_score >= best_mrmr_score) {
 				best_mrmr_score = mrmr_score;

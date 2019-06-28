@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 
 enum verbosity_level : char {
+    ERROR = -1,
 	QUIET = 0,
 	INFO = 1,
 	DEBUG = 2
