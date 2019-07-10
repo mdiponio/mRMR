@@ -69,7 +69,9 @@ int add_attribute_uint8( void * env, const char * name, uint8_t * data, std::siz
             break;
 
         default: 
-            throw std::invalid_argument("invalid data type specified");
+			ret = -2;
+			m_env->error = "invalid type";
+			break;
 
     }
 
@@ -109,8 +111,9 @@ int add_attribute_uint16( void *env, const char * name, uint16_t * data, std::si
             break;
 
         default: 
-            throw std::invalid_argument("invalid data type specified");
-
+			ret = -2;
+			m_env->error = "invalid type";
+			break;
     }
 
     return ret;
@@ -138,7 +141,8 @@ int add_attribute_int32( void *env, const char * name, int32_t * data, std::size
             return m_env->data_int32->set_attribute( name_s, data, length );
 
         default: 
-            throw std::invalid_argument("invalid data type specified");
+			m_env->error = "invalid type";
+			return -2;
     }
 }
 

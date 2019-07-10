@@ -22,6 +22,7 @@ from ctypes import *
 from enum import Enum
 from os.path import realpath, dirname, isfile
 from typing import List, Tuple
+from sys import platform
 
 from numpy import ubyte, ushort, int32
 from pandas import DataFrame
@@ -68,7 +69,16 @@ def setup(path: str = None) -> None:
         return
 
     if not path:
-        path = dirname(realpath(__file__)) + "/../mrmr/libmrmr_py.so"
+        mrmr_path = dirname(realpath(__file__)) + "/../mrmr/"
+        if platform.startswith("win"):
+            # Default is release build
+            path = mrmr_path + "Release/mrmr.dll"
+            
+            # Fall back to debug build
+            if not isfile(path):
+                path = mrmr_path + "Debug/mrmr.dll"
+        else:
+            path =  mrmr_path + "libmrmr_py.so"
 
     if not isfile(path):
         raise OSError("library path not found")

@@ -152,24 +152,19 @@ struct mrmr_env {
     }
 };
 
-#ifdef __cplusplus
 extern "C" {
-#endif
+	__declspec(dllexport) void * setup_mrmr(data_type type);
+	__declspec(dllexport) int add_attribute_uint8(void * env, const char * name, uint8_t * data, std::size_t length);
+	__declspec(dllexport) int add_attribute_uint16(void * env, const char * name, uint16_t * data, std::size_t length);
+	__declspec(dllexport) int add_attribute_int32(void *env, const char * name, int32_t * data, std::size_t length);
+	__declspec(dllexport) int perform_mrmr(void * env, mrmr_method_type method, unsigned int label, unsigned int num_features);
+	__declspec(dllexport) const char ** get_feature_ranks(void * env, int * num);
+	__declspec(dllexport) double * get_entropy(void * env, int * num);
+	__declspec(dllexport) double * get_mutual_information(void * env, int * num);
+	__declspec(dllexport) double * get_mrmr_score(void * env, int * num);
+	__declspec(dllexport) const char * get_last_error(void * env);
+	__declspec(dllexport) void destroy_mrmr(void * env);
 
-void * setup_mrmr( data_type type );
-int add_attribute_uint8( void * env, const char * name, uint8_t * data, std::size_t length );
-int add_attribute_uint16( void * env, const char * name, uint16_t * data, std::size_t length );
-int add_attribute_int32( void *env, const char * name, int32_t * data, std::size_t length );
-int perform_mrmr( void * env, mrmr_method_type method, unsigned int label, unsigned int num_features );
-const char ** get_feature_ranks( void * env, int * num );
-double * get_entropy( void * env, int * num );
-double * get_mutual_information( void * env, int * num );
-double * get_mrmr_score( void * env, int * num );
-const char * get_last_error( void * env );
-void destroy_mrmr( void * env );
-
-#ifdef __cplusplus
 }
-#endif
 
 #endif 
