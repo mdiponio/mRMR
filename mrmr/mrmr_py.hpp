@@ -29,6 +29,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dataset.hpp"
 #include "mrmr.hpp"
 
+#ifdef _WIN32
+#define DLL_EXPORT __declspec(dllexport)
+#else
+#define DLL_EXPORT
+#endif
+
 enum data_type: char {
     uint8_type = 0,
     uint16_type = 1,
@@ -153,18 +159,17 @@ struct mrmr_env {
 };
 
 extern "C" {
-	__declspec(dllexport) void * setup_mrmr(data_type type);
-	__declspec(dllexport) int add_attribute_uint8(void * env, const char * name, uint8_t * data, std::size_t length);
-	__declspec(dllexport) int add_attribute_uint16(void * env, const char * name, uint16_t * data, std::size_t length);
-	__declspec(dllexport) int add_attribute_int32(void *env, const char * name, int32_t * data, std::size_t length);
-	__declspec(dllexport) int perform_mrmr(void * env, mrmr_method_type method, unsigned int label, unsigned int num_features);
-	__declspec(dllexport) const char ** get_feature_ranks(void * env, int * num);
-	__declspec(dllexport) double * get_entropy(void * env, int * num);
-	__declspec(dllexport) double * get_mutual_information(void * env, int * num);
-	__declspec(dllexport) double * get_mrmr_score(void * env, int * num);
-	__declspec(dllexport) const char * get_last_error(void * env);
-	__declspec(dllexport) void destroy_mrmr(void * env);
-
+	DLL_EXPORT void * setup_mrmr(data_type type);
+	DLL_EXPORT int add_attribute_uint8(void * env, const char * name, uint8_t * data, std::size_t length);
+	DLL_EXPORT int add_attribute_uint16(void * env, const char * name, uint16_t * data, std::size_t length);
+	DLL_EXPORT int add_attribute_int32(void *env, const char * name, int32_t * data, std::size_t length);
+	DLL_EXPORT int perform_mrmr(void * env, mrmr_method_type method, unsigned int label, unsigned int num_features);
+	DLL_EXPORT const char ** get_feature_ranks(void * env, int * num);
+	DLL_EXPORT double * get_entropy(void * env, int * num);
+	DLL_EXPORT double * get_mutual_information(void * env, int * num);
+	DLL_EXPORT double * get_mrmr_score(void * env, int * num);
+	DLL_EXPORT const char * get_last_error(void * env);
+	DLL_EXPORT void destroy_mrmr(void * env);
 }
 
 #endif 
